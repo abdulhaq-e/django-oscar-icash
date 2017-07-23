@@ -1,0 +1,15 @@
+[[source]]
+url = "https://pypi.python.org/simple"
+verify_ssl = true
+
+[packages]
+django-compressor = "==1.6"
+mock = "==1.0.1"
+coverage = "==3.7.1"
+django = "*"
+requests = "*"
+
+[dev-packages]
+pytest = "*"
+pytest-django = "*"
+django-extensions = "*"
