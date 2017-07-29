@@ -2,7 +2,7 @@ from django import forms
 
 
 class iCashForm(forms.Form):
+    icard = forms.IntegerField()
+    paycode = forms.IntegerField()
     
-    icard_no = forms.CharField()
-    confirmation_code = forms.IntegerField()
     

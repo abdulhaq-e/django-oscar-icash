@@ -1,7 +1,9 @@
 """
 Bridging module between Oscar and the gateway module (which is Oscar agnostic)
 """
-from oscar.apps.payment import exceptions
+from django.conf import settings
+
+from .exceptions import iCashError
 
 from iCash import gateway
 
@@ -11,16 +13,33 @@ class Facade:
     """
 
     def __init__(self, *args, **kwargs):
-        gateway_url = kwargs.get('gateway_url')
-        qr_gateway_url = kwargs.get('qr_gateway_url')
-        self.gateway = gateway.GatewayConnector(gateway_url, qr_gateway_url)
+        self.gateway = gateway.GatewayConnector(
+            merchant_gateway_url=settings.ICASH_MERCHANT_GATEWAY_URL)
             
     def login(self, params):
         self.gateway.login(params)
 
-    def send_invoice(self, shop_card_no, customer_card_no, amount, confirmation_code):
-        self.gateway.send_invoice(shop_card_no, customer_card_no,
-                                  amount, confirmation_code)
+    @staticmethod
+    def check_required_payload(params, required_params):
+        for p in required_params:
+            if not params.get(p, None):
+                raise iCashError
         
-    def confrimation_code_qr_image(self, shop_no, amount):
-        return self.gateway.confrimation_code_qr_image(shop_no, amount)
+    def can_pay(self, params):
+        required_params = ['CustomerCard']
+        self.check_required_payload(params, required_params)
+        
+        return self.gateway.can_pay(params)
+        
+    def send_invoice(self, params):
+        required_params = ['CustomerCard', 'Amount', 'PayCode']
+        self.check_required_payload(params, required_params)
+                                
+        response = self.gateway.send_invoice(params)
+        if int(response.content.decode('utf8')) < 0:
+            raise exceptions.iCashError
+            
+        return response
+                
+    def paycode_qr_image(self, response):
+        return self.gateway.paycode_qr_image(response)

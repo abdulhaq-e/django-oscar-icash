@@ -12,16 +12,26 @@ from iCash import exceptions
 
 
 class GatewayConnector:
-    
-    def __init__(self, gateway_url, qr_gateway_url):
-        self.gateway_url = gateway_url
-        self.qr_gateway_url = qr_gateway_url
-    
+
+    def __init__(self, *args, **kwargs):
+        self.merchant_gateway_url = kwargs.get('merchant_gateway_url')
+        
+    def url_builder(self, operation):
+        base = 'api'
+        if operation == 'send_invoice':
+            fragment = base + '/sendInvoice'
+        elif operation == 'can_pay':
+            fragment = base + '/supported'
+        elif operation == 'login':
+            fragment = 'token'
+            
+        return urllib.parse.urljoin(self.merchant_gateway_url, fragment)
+
     def login(self, params):
         """
         Make a POST request to the URL to obtain a token to be used in communicating
         with the API.
-        
+
         :params: must be a dict that includes the following:
         {
             'username': username
@@ -31,31 +41,52 @@ class GatewayConnector:
         The data must be form encoded.
         """
         payload = params
-        url = urllib.parse.urljoin(self.gateway_url, 'token')
+        url = self.url_builder('login')
         self.login_response = requests.post(
             url, data=payload,
             headers={'content-type': 'application/json; charset=utf-8',
                      'Accept': 'application/json'})
         return self.login_response
-    
+
     @property
     def token(self):
         return json.loads(self.login_response.content.decode('utf8')).get('access_token')
 
-    def send_invoice(self, shop_card_no, customer_card_no, amount, confirmation_code):
-        url_fragment = "api/sendInvoice/{}/{}/{}/{}".format(
-            shop_card_no, customer_card_no, amount, confirmation_code)
-        url = urllib.parse.urljoin(self.gateway_url, url_fragment)
-        response = requests.get(url, headers={
-            'Authorization': 'Bearer {}'.format(self.token)
-        })
+    def can_pay(self, params):
+        '''
+        params:
+            - CustomerCard: int, required
+            - ShopCard: int, optional
+            - Amount: decimal number, required
+            - Currency: int, optional
+        '''
+        url = self.url_builder('can_pay')
         print(url)
-        print(response.content)
-        if int(response.content.decode('utf8')) < 0:
-            raise exceptions.iCashError
-
-    def confrimation_code_qr_image(self, shop_no, amount):
-        url_fragment = '/api/qrimage/{}/{}'.format(amount, shop_no)
-        url = urllib.parse.urljoin(self.qr_gateway_url, url_fragment)
+        payload = params
+        auth_header = 'Bearer {}'.format(self.token)
+        response = requests.post(url, json=payload, headers={
+            'Authorization': auth_header})
         
-        return url
+        return response
+
+    def send_invoice(self, params):
+        '''
+        params:
+            - CustomerCard: int, required
+            - ShopCard: int, optional
+            - Amount: decimal number, required
+            - Currency: int, optional
+            - PayCode: int, required
+            - ShopId: int, optional
+        '''        
+        url = self.url_builder('send_invoice')
+        auth_header = 'Bearer {}'.format(self.token)
+        response = requests.get(url, headers={
+            'Authorization': auth_header})
+        
+        return response
+
+    def paycode_qr_image(self, response):
+        image = response.content.decode('utf8').get('qr_image')
+
+        return image
