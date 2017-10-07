@@ -36,7 +36,7 @@ class Facade:
         self.check_required_payload(params, required_params)
 
         response = self.gateway.send_invoice(params)
-        if response.status_code != 200:
+        if str(response.status_code)[0] != 2:
             raise iCashError
 
         return response
