@@ -80,6 +80,8 @@ class GatewayConnector:
             - ShopId: int, optional
         '''
         url = self.url_builder('send_invoice')
+        params['Amount'] = float(params['Amount'])
+        print(params['Amount'])
         auth_header = 'Bearer {}'.format(self.token)
         response = requests.post(url, json=params, headers={
             'Authorization': auth_header})
