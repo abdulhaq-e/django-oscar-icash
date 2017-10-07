@@ -15,7 +15,7 @@ class GatewayConnector:
 
     def __init__(self, *args, **kwargs):
         self.merchant_gateway_url = kwargs.get('merchant_gateway_url')
-        
+
     def url_builder(self, operation):
         base = 'api'
         if operation == 'send_invoice':
@@ -24,7 +24,7 @@ class GatewayConnector:
             fragment = base + '/supported'
         elif operation == 'login':
             fragment = 'token'
-            
+
         return urllib.parse.urljoin(self.merchant_gateway_url, fragment)
 
     def login(self, params):
@@ -66,7 +66,7 @@ class GatewayConnector:
         auth_header = 'Bearer {}'.format(self.token)
         response = requests.post(url, json=payload, headers={
             'Authorization': auth_header})
-        
+
         return response
 
     def send_invoice(self, params):
@@ -78,12 +78,12 @@ class GatewayConnector:
             - Currency: int, optional
             - PayCode: int, required
             - ShopId: int, optional
-        '''        
+        '''
         url = self.url_builder('send_invoice')
         auth_header = 'Bearer {}'.format(self.token)
-        response = requests.get(url, headers={
+        response = requests.post(url, headers={
             'Authorization': auth_header})
-        
+
         return response
 
     def paycode_qr_image(self, response):
